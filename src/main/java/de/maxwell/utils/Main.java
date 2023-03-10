@@ -15,9 +15,10 @@ public class Main {
         list.addValue("abc");
         list.addValue("my Brain hurts");
         list.addValue("oof");
-
-        String[] values = new String[]{"Hi", "Im", "Max"};
-        list.insertValues(2, values);
         System.out.println(list);
+
+        list.removeValues(1, 4);
+        System.out.println(list);
+
     }
 }
