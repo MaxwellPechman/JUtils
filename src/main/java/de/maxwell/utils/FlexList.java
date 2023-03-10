@@ -23,8 +23,7 @@ public class FlexList<V> implements Iterable<V> {
 
     private Object[] getCopy(int capacity) {
         Object[] valuesCopy = new Object[capacity];
-
-        for(int index = 0; index < this.size; size++) {
+        for(int index = 0; index < this.size; index++) {
             valuesCopy[index] = this.values[index];
         }
 
@@ -44,7 +43,7 @@ public class FlexList<V> implements Iterable<V> {
     }
 
     public boolean isEmptyAt(int index) {
-        if(index < 0 || index > this.getTechnicalSize() || this.isEmpty()) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
             throw new IndexOutOfBoundsException("");
         }
 
@@ -100,23 +99,67 @@ public class FlexList<V> implements Iterable<V> {
     }
 
     public boolean hasValues(V[] values) {
-        if(this.isEmpty()) {
+        int length = values.length;
+        if(this.isEmpty() || length > this.getTechnicalSize()) {
             throw new IndexOutOfBoundsException("");
+        }
+
+        int count = 0;
+        for(int index = 0; index < this.size; index++) {
+            for(int subdex = 0; subdex < length; subdex++) {
+                if(this.values[index] == values[subdex]) {
+                    count++;
+                }
+            }
+
+            if(count == length) {
+                return true;
+            }
         }
 
         return false;
     }
 
     public void setValue(int index, V value) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
 
+        Object[] valueCopy = new Object[this.getCapacity()];
+        for(int subdex = 0; subdex < this.size; subdex++) {
+            if(subdex == index) {
+                valueCopy[subdex] = value;
+
+            } else {
+                valueCopy[subdex] = this.values[subdex];
+            }
+        }
+
+        this.values = valueCopy;
     }
 
     public void setValues(int index, V[] values) {
+        int length = values.length;
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize() || length > this.getTechnicalSize() || length + index > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
 
+        Object[] valuesCopy = new Object[this.getCapacity()];
+        for(int subdex = 0; subdex < this.size; subdex++) {
+            if(subdex >= index && subdex <= length) {
+                valuesCopy[subdex] = values[subdex - length];
+
+            } else {
+                valuesCopy[subdex] = this.values[subdex];
+
+            }
+        }
+
+        this.values = valuesCopy;
     }
 
     public V getValue(int index) {
-        if(index < 0 || index > this.getTechnicalSize() || this.isEmpty()) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
             throw new IndexOutOfBoundsException("");
         }
 
@@ -137,12 +180,9 @@ public class FlexList<V> implements Iterable<V> {
             throw new IndexOutOfBoundsException("");
         }
 
-        int capacity = tillIndex - fromIndex;
-        Object[] selectedValues = new Object[capacity];
-
+        Object[] selectedValues = new Object[tillIndex - fromIndex];
         for(int index = fromIndex; index < tillIndex; index++) {
-            int arrayIndex = index - fromIndex;
-            selectedValues[arrayIndex] = this.values[index];
+            selectedValues[index - fromIndex] = this.values[index];
         }
 
         return (V[]) selectedValues;
@@ -166,24 +206,24 @@ public class FlexList<V> implements Iterable<V> {
             throw new IllegalStateException("");
         }
 
-        while(this.getAvailableCapacity() < values.length) {
+        int length = values.length;
+        while(this.getAvailableCapacity() < length) {
             this.setCapacity(this.getCapacity() * EXPAND_FACTOR);
         }
 
-        for(int index = 0; index < values.length; index++) {
+        for(int index = 0; index < length; index++) {
             this.values[index + this.size] = values[index];
             this.size++;
         }
     }
 
     public V removeValue(int index) {
-        if(index < 0 || index > this.getTechnicalSize()) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
             throw new IndexOutOfBoundsException("");
         }
 
         Object[] valuesCopy = new Object[this.getCapacity()];
         Object obj = this.values[index];
-
         for(int subdex = 0; subdex < this.size; subdex++) {
             if(subdex >= index) {
                 valuesCopy[subdex] = this.values[subdex + 1];
@@ -199,15 +239,93 @@ public class FlexList<V> implements Iterable<V> {
         return (V) obj;
     }
 
-    public V[] removeValues(int from, int till) {
-        return null;
+    public V[] removeValues(int fromIndex, int tillIndex) {
+        if(this.isEmpty()) {
+            throw new IndexOutOfBoundsException("");
+        }
+
+        if(fromIndex < 0 || fromIndex >= tillIndex || fromIndex > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
+
+        // Checking "tillIndex < fromIndex" is probably not required.
+        if(tillIndex < 0 || tillIndex <= fromIndex || tillIndex > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
+
+        int indexGap = tillIndex - fromIndex + 1;
+        Object[] removedValues = new Object[indexGap];
+        Object[] valuesCopy = new Object[this.getCapacity()];
+
+        for(int index = 0; index < this.size; index++) {
+            if(index >= fromIndex && index <= tillIndex) {
+                removedValues[index - fromIndex] = this.values[index];
+
+            } else if(index > tillIndex) {
+                valuesCopy[index - indexGap] = this.values[index];
+
+            } else {
+                valuesCopy[index] = this.values[index];
+            }
+        }
+
+        this.values = valuesCopy;
+        this.size = this.size - indexGap;
+
+        return (V[]) removedValues;
     }
 
     public void insertValue(int index, V value) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
 
+        if(this.getAvailableCapacity() == 0) {
+            this.setCapacity(this.getCapacity() * EXPAND_FACTOR);
+        }
+
+        Object[] valuesCopy = new Object[this.getCapacity()];
+        for(int subdex = 0; subdex < this.size + 1; subdex++) {
+            if(subdex == index) {
+                valuesCopy[subdex] = value;
+
+            } else if(subdex > index) {
+                valuesCopy[subdex] = this.values[subdex - 1];
+
+            } else {
+                valuesCopy[subdex] = this.values[subdex];
+            }
+        }
+
+        this.values = valuesCopy;
+        this.size++;
     }
 
     public void insertValues(int index, V[] values) {
+        if(this.isEmpty() || index < 0 || index > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
+
+        int length = values.length;
+        while(this.getAvailableCapacity() < length) {
+            this.setCapacity(this.getCapacity() * EXPAND_FACTOR);
+        }
+
+        Object[] valuesCopy = new Object[this.getCapacity()];
+        int shiftedIndex = index + length - 1;
+        for(int subdex = 0; subdex < this.size; subdex++) {
+            if(subdex >= index && subdex <= shiftedIndex) {
+                valuesCopy[subdex] = values[subdex - index];
+
+            } else {
+                valuesCopy[subdex] = this.values[subdex];
+            }
+        }
+
+        this.values = valuesCopy;
+    }
+
+    public void shiftValue(int fromIndex, int toIndex) {
 
     }
 
@@ -215,7 +333,7 @@ public class FlexList<V> implements Iterable<V> {
 
     }
 
-    public void reset() {
+    public void resetList() {
         this.values = new Object[DEFAULT_CAPACITY];
     }
 
@@ -223,7 +341,23 @@ public class FlexList<V> implements Iterable<V> {
 
     }
 
-    public void restore(int index) {
+    public void undoAll() {
+
+    }
+
+    public void restoreValue(int index) {
+
+    }
+
+    public void restoreValues(int fromIndex, int tillIndex) {
+
+    }
+
+    public void deleteValue(V value) {
+
+    }
+
+    public void deleteValues(V[] values) {
 
     }
 
@@ -288,15 +422,20 @@ public class FlexList<V> implements Iterable<V> {
     @Override
     public String toString() {
         StringBuilder string = new StringBuilder("[");
-
         for(int index = 0; index < this.size; index++) {
-            string.append(this.values[index].toString());
+            Object value = this.values[index];
+            if(value == null) {
+                string.append("null");
+
+            } else {
+                string.append(value);
+            }
 
             if(index < this.getTechnicalSize()) {
                 string.append(",");
             }
         }
 
-        return string.toString() + "]";
+        return string + "]";
     }
 }
