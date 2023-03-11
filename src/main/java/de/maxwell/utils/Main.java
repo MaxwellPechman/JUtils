@@ -15,8 +15,6 @@ public class Main {
         list.addValue("oof");
         System.out.println(list);
 
-        String[] values = {"XD", "LEL", "LUL"};
-        list.insertValues(2, values);
-        System.out.println(list);
+
     }
 }

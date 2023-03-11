@@ -1,7 +1,5 @@
 package de.maxwell.utils;
 
-import com.sun.jdi.InvalidTypeException;
-
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -12,6 +10,41 @@ public class FlexList<V> implements Iterable<V> {
 
     private int size = 0;
     private Object[] values;
+    private FlexList<ListEvent> events;
+
+    private enum EventType {
+        ADD_CAPACITY,
+        SET_CAPACITY,
+        ADD_VALUE,
+        ADD_VALUES,
+        REMOVE_VALUE,
+        REMOVE_VALUES,
+        SET_VALUE,
+        SET_VALUES,
+        INSERT_VALUE,
+        INSERT_VALUES,
+        SHIFT_VALUE,
+        SHIFT_VALUES;
+    }
+
+    private class ListEvent {
+
+        private final EventType type;
+        private final Object[] objects;
+
+        public ListEvent(EventType type, Object[] objects) {
+            this.type = type;
+            this.objects = objects;
+        }
+
+        public EventType getType() {
+            return this.type;
+        }
+
+        public Object[] getObjects() {
+            return this.objects;
+        }
+    }
 
     public FlexList() {
         this(DEFAULT_CAPACITY);
@@ -19,6 +52,7 @@ public class FlexList<V> implements Iterable<V> {
 
     public FlexList(int capacity) {
         this.values = new Object[capacity];
+        this.events = new FlexList<>(capacity);
     }
 
     private Object[] getCopy(int capacity) {
@@ -73,6 +107,7 @@ public class FlexList<V> implements Iterable<V> {
 
         int newCap = this.getCapacity() + capacity;
         this.values = this.getCopy(newCap);
+        this.events.addValue(new ListEvent(EventType.ADD_CAPACITY, this.values));
     }
 
     public void removeCapacity(int capacity) {
@@ -305,8 +340,20 @@ public class FlexList<V> implements Iterable<V> {
             throw new IndexOutOfBoundsException("");
         }
 
+        Object object = this.values[fromIndex];
 
+        if(fromIndex < toIndex) {
+            for(int index = fromIndex; index < toIndex; index++) {
+                this.values[index] = this.values[index + 1];
+            }
 
+        } else {
+            for(int index = fromIndex; index > toIndex; index--) {
+                this.values[index] = this.values[index - 1];
+            }
+        }
+
+        this.values[toIndex] = object;
     }
 
     public void shiftValues(int fromIndex, int tillIndex, int toIndex) {
