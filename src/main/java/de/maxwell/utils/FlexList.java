@@ -1,6 +1,5 @@
 package de.maxwell.utils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -11,11 +10,10 @@ public class FlexList<V> implements Iterable<V> {
 
     private int size = 0;
     private Object[] values;
-    private ArrayList<ListEvent> events;
+    private FlexList<ListEvent> events;
 
     private enum EventType {
         ADD_CAPACITY,
-        REMOVE_CAPACITY,
         SET_CAPACITY,
         ADD_VALUE,
         ADD_VALUES,
@@ -26,37 +24,21 @@ public class FlexList<V> implements Iterable<V> {
         INSERT_VALUE,
         INSERT_VALUES,
         SHIFT_VALUE,
-        SHIFT_VALUES,
-        UNDO,
-        UNDO_ALL,
+        SHIFT_VALUES;
     }
 
     private class ListEvent {
 
         private final EventType type;
-        private final int index;
         private final Object[] objects;
 
         public ListEvent(EventType type, Object[] objects) {
-            this(type, 0, objects);
-        }
-
-        public ListEvent(EventType type, int index, Object[] objects) {
             this.type = type;
-            this.index = index;
             this.objects = objects;
         }
 
         public EventType getType() {
             return this.type;
-        }
-
-        public int getIndex() {
-            if(this.index == 0) {
-                throw new IllegalStateException("");
-            }
-
-            return this.index;
         }
 
         public Object[] getObjects() {
@@ -70,7 +52,7 @@ public class FlexList<V> implements Iterable<V> {
 
     public FlexList(int capacity) {
         this.values = new Object[capacity];
-        this.events = new ArrayList<>();
+        this.events = new FlexList<>(capacity);
     }
 
     private Object[] getCopy(int capacity) {
@@ -125,7 +107,7 @@ public class FlexList<V> implements Iterable<V> {
 
         int newCap = this.getCapacity() + capacity;
         this.values = this.getCopy(newCap);
-        this.events.add(new ListEvent(EventType.ADD_CAPACITY, this.values));
+        this.events.addValue(new ListEvent(EventType.ADD_CAPACITY, this.values));
     }
 
     public void removeCapacity(int capacity) {
@@ -135,7 +117,6 @@ public class FlexList<V> implements Iterable<V> {
 
         int newCap = this.getCapacity() - capacity;
         this.values = this.getCopy(newCap);
-        this.events.remove(new ListEvent(EventType.REMOVE_CAPACITY, this.values));
     }
 
     public boolean hasValue(V value) {
@@ -184,7 +165,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         this.values[index] = value;
-        this.events.add(new ListEvent(EventType.SET_VALUE, this.values));
     }
 
     public void setValues(int index, V[] values) {
@@ -201,8 +181,6 @@ public class FlexList<V> implements Iterable<V> {
         for(int subdex = index; subdex < shiftedIndex; subdex++) {
             this.values[subdex] = values[subdex - index];
         }
-
-        this.events.add(new ListEvent(EventType.SET_VALUES, this.values));
     }
 
     public V getValue(int index) {
@@ -211,20 +189,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         return (V) this.values[index];
-    }
-
-    public int getIndexOf(V value) {
-        if(!this.hasValue(value)) {
-            throw new IllegalStateException("");
-        }
-
-        for(int index = 0; index < this.size; index++) {
-            if(value == this.getValue(index)) {
-                return index;
-            }
-        }
-
-        throw new IllegalStateException("");
     }
 
     public V[] getValues(int fromIndex, int tillIndex) {
@@ -259,7 +223,6 @@ public class FlexList<V> implements Iterable<V> {
 
         this.values[this.size] = value;
         this.size++;
-        this.events.add(new ListEvent(EventType.ADD_VALUE, this.values));
     }
 
     public void addValues(V[] values) {
@@ -276,8 +239,6 @@ public class FlexList<V> implements Iterable<V> {
             this.values[index + this.size] = values[index];
             this.size++;
         }
-
-        this.events.add(new ListEvent(EventType.ADD_VALUES, this.values));
     }
 
     public V removeValue(int index) {
@@ -291,7 +252,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         this.size--;
-        this.events.add(new ListEvent(EventType.REMOVE_VALUE, this.values));
 
         return (V) object;
     }
@@ -321,7 +281,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         this.size = this.size - indexGap;
-        this.events.add(new ListEvent(EventType.REMOVE_VALUES, this.values));
 
         return (V[]) removedValues;
     }
@@ -345,7 +304,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         this.size++;
-        this.events.add(new ListEvent(EventType.INSERT_VALUE, this.values));
     }
 
     public void insertValues(int index, V[] values) {
@@ -367,8 +325,6 @@ public class FlexList<V> implements Iterable<V> {
                 this.values[topdex] = this.values[topdex - 1];
             }
         }
-
-        this.events.add(new ListEvent(EventType.INSERT_VALUES, this.values));
     }
 
     public void shiftValue(int fromIndex, int toIndex) {
@@ -398,7 +354,6 @@ public class FlexList<V> implements Iterable<V> {
         }
 
         this.values[toIndex] = object;
-        this.events.add(new ListEvent(EventType.SHIFT_VALUE, this.values));
     }
 
     public void shiftValues(int fromIndex, int tillIndex, int toIndex) {
@@ -407,15 +362,10 @@ public class FlexList<V> implements Iterable<V> {
 
     public void resetList() {
         this.values = new Object[DEFAULT_CAPACITY];
-        this.events = new ArrayList<>();
     }
 
     public void undo() {
-        int index = this.events.size() - 1;
-        ListEvent event = this.events.get(index);
 
-        this.values = event.getObjects();
-        this.events.add(new ListEvent(EventType.UNDO, this.values));
     }
 
     public void undoAll() {
@@ -430,51 +380,12 @@ public class FlexList<V> implements Iterable<V> {
 
     }
 
-    public V deleteValue(V value) {
-        if(!this.hasValue(value)) {
-            throw new IllegalStateException("");
-        }
+    public void deleteValue(V value) {
 
-        int objectIndex = this.getIndexOf(value);
-        Object object = this.removeValue(objectIndex);
-        for(int index = 0; index < this.events.size(); index++) {
-            Object[] objects = this.events.get(index).getObjects();
-
-            for(int subdex = 0; subdex < objects.length; subdex++) {
-                if(objects[subdex].equals(value)) {
-                    this.events.remove(index);
-                }
-            }
-        }
-
-        return (V) object;
     }
 
-    public V[] deleteValues(V[] values) {
-        if(!this.hasValues(values)) {
-            throw new IllegalStateException("");
-        }
+    public void deleteValues(V[] values) {
 
-        int length = values.length;
-        Object[] objects = new Object[length];
-        for(int index = 0; index < length; index++) {
-            int subdex = this.getIndexOf(values[index]);
-            objects[index] = this.removeValue(subdex);
-        }
-
-        for(int index = 0; index < this.events.size(); index++) {
-            Object[] subObjects = this.events.get(index).getObjects();
-
-            for(int subdex = 0; subdex < subObjects.length; subdex++) {
-                for(int valuesDex = 0; valuesDex < values.length; valuesDex++) {
-                    if(subObjects[valuesDex].equals(values[valuesDex])) {
-
-                    }
-                }
-            }
-        }
-
-        return (V[]) objects;
     }
 
     public void haltCollection() {
