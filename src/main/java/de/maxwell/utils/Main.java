@@ -1,11 +1,11 @@
 package de.maxwell.utils;
 
-import de.maxwell.utils.lists.FlexList;
+import de.maxwell.utils.iterables.FlexMultiList;
 
 public class Main {
 
     public static void main(String[] args) {
-        FlexList<String> list = new FlexList<>();
+        FlexMultiList<String> list = new FlexMultiList<>();
         list.addValue("Dog");
         list.addValue("Me");
         list.addValue("Heya");
@@ -22,7 +22,7 @@ public class Main {
         list.addValue("code");
         System.out.println(list);
 
-        list.shiftValues(2,4, 5);
+        //list.shiftValues(2,4, 5);
         System.out.println(list);
     }
 }

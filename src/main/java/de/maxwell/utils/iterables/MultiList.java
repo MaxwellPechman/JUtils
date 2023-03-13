@@ -1,4 +1,4 @@
-package de.maxwell.utils.lists;
+package de.maxwell.utils.iterables;
 
 public interface MultiList<V> {
 

@@ -1,10 +1,10 @@
-package de.maxwell.utils.lists;
+package de.maxwell.utils.iterables;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-public class FlexList<V> implements Iterable<V> {
+public class FlexMultiList<V> implements Iterable<V> {
 
     public static final int DEFAULT_CAPACITY = 4;
     public static final int EXPAND_FACTOR = 2;
@@ -50,11 +50,11 @@ public class FlexList<V> implements Iterable<V> {
         }
     }
 
-    public FlexList() {
+    public FlexMultiList() {
         this(DEFAULT_CAPACITY);
     }
 
-    public FlexList(int capacity) {
+    public FlexMultiList(int capacity) {
         this.values = new Object[capacity];
         this.events = new ArrayList<>();
     }
@@ -400,12 +400,22 @@ public class FlexList<V> implements Iterable<V> {
             throw new IndexOutOfBoundsException("");
         }
 
+        if(toIndex < 0 || toIndex > this.getTechnicalSize()) {
+            throw new IndexOutOfBoundsException("");
+        }
+
         int indexGap = tillIndex - fromIndex;
         if(indexGap + toIndex > this.getTechnicalSize()) {
             throw new IndexOutOfBoundsException("");
         }
 
         Object[] objects = this.getValues(fromIndex, tillIndex);
+        if(toIndex < fromIndex) {
+
+        } else if(toIndex > tillIndex) {
+
+        }
+
         if(fromIndex + indexGap > toIndex) {
             for(int index = fromIndex; index < toIndex; index++) {
                 this.values[index] = this.values[index + 1];
